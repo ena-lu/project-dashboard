@@ -324,16 +324,34 @@ document.getElementById('project-list').addEventListener('keydown', e => {
   summary.click();
 });
 
-// ===== 事件委派：實際工時 input → 更新差異 =====
+// ===== 事件委派：實際工時 / 實際日期 input → 更新差異 & 回寫資料 =====
 document.getElementById('project-list').addEventListener('input', e => {
   const input = e.target;
-  if (!input.classList.contains('actual-hours')) return;
+  const card = input.closest('.project-card');
+  if (!card) return;
 
-  const td = input.closest('tr').querySelector('.diff');
-  const estimated = Number(input.dataset.estimated);
-  const actual = input.value === '' ? null : Number(input.value);
-  td.textContent = diffText(estimated, actual);
-  td.className = diffClass(estimated, actual);
+  const projectId = Number(card.dataset.id);
+  const project = PROJECTS.find(p => p.id === projectId);
+  if (!project) return;
+
+  const row = input.closest('tr');
+  const phaseIndex = Array.from(row.parentElement.children).indexOf(row);
+  const phase = project.phases[phaseIndex];
+  if (!phase) return;
+
+  // 實際工時回寫 + 即時更新差異欄
+  if (input.classList.contains('actual-hours')) {
+    const actual = input.value === '' ? null : Number(input.value);
+    phase.actualHours = actual;
+    const td = row.querySelector('.diff');
+    td.textContent = diffText(phase.estimatedHours, actual);
+    td.className = diffClass(phase.estimatedHours, actual);
+  }
+
+  // 實際日期回寫
+  if (input.type === 'date') {
+    phase.actualDate = input.value;
+  }
 });
 
 // ===== 啟動 =====
