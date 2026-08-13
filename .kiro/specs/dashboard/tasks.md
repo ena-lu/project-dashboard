@@ -59,11 +59,11 @@
     - 卡片寬度 100%、橫向 padding 縮小
 
 **驗收標準：**
-- [ ] 六種 badge 顏色各不相同，肉眼可分辨
-- [ ] 桌機檢視：table 正常顯示所有欄位
-- [ ] 手機模擬（DevTools 375px）：table 改為堆疊排版，無水平捲軸
-- [ ] `.diff--over` 文字為紅色、`.diff--under` 文字為綠色
-- [ ] 無任何外部 CSS 引用（@import url 或 CDN link）
+- [x] 六種 badge 顏色各不相同，肉眼可分辨
+- [x] 桌機檢視：table 正常顯示所有欄位
+- [x] 手機模擬（DevTools 375px）：table 改為堆疊排版，無水平捲軸
+- [x] `.diff--over` 文字為紅色、`.diff--under` 文字為綠色
+- [x] 無任何外部 CSS 引用（@import url 或 CDN link）
 
 **Commit 訊息：** `task2: CSS layout and responsive styles`
 
