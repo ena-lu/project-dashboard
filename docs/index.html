@@ -17,9 +17,17 @@
       <select id="client-filter">
         <option value="">全部客戶</option>
       </select>
+      <div class="view-toggle" role="group" aria-label="切換顯示模式">
+        <button id="btn-list" class="btn-view btn-view--active" aria-pressed="true">列表</button>
+        <button id="btn-gantt" class="btn-view" aria-pressed="false">甘特圖</button>
+      </div>
     </section>
 
     <section class="project-list" id="project-list">
+      <!-- 由 app.js 動態渲染 -->
+    </section>
+
+    <section class="gantt-view" id="gantt-view" hidden>
       <!-- 由 app.js 動態渲染 -->
     </section>
   </main>

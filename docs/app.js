@@ -307,6 +307,10 @@ function initFilter() {
     const val = select.value;
     const filtered = val ? PROJECTS.filter(p => p.client === val) : PROJECTS;
     renderProjects(filtered);
+    // 若目前為甘特圖模式，同步更新
+    if (!document.getElementById('gantt-view').hidden) {
+      renderGantt(filtered);
+    }
   });
 }
 
@@ -370,6 +374,223 @@ document.getElementById('project-list').addEventListener('input', e => {
   }
 });
 
+// ===== 甘特圖 =====
+
+// 將 'YYYY-MM-DD' 轉為當日 00:00 的 Date（避免時區偏移）
+function parseDate(str) {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// 計算每個專案各階段的起訖區間
+// 起始：上一個階段 plannedDate 隔日；第一個階段：第一個 plannedDate 前推 30 天
+function getPhaseRanges(phases) {
+  const ranges = [];
+  let prevEnd = null;
+  phases.forEach(phase => {
+    if (!phase.plannedDate) return;
+    const end = parseDate(phase.plannedDate);
+    const start = prevEnd
+      ? new Date(prevEnd.getTime() + 86400000)
+      : new Date(end.getTime() - 30 * 86400000);
+    ranges.push({ name: phase.name, start, end });
+    prevEnd = end;
+  });
+  return ranges;
+}
+
+function renderGantt(list) {
+  const container = document.getElementById('gantt-view');
+  if (!list.length) {
+    container.innerHTML = '<p class="gantt-empty">查無符合的專案</p>';
+    return;
+  }
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const ROW_H = 36;        // 每個專案列高
+  const LABEL_W = 160;     // 左側專案名稱寬
+  const HEADER_H = 36;     // 上方日期標頭高
+  const TODAY_MS = new Date().setHours(0, 0, 0, 0);
+
+  // 計算全域時間範圍
+  let minMs = Infinity, maxMs = -Infinity;
+  list.forEach(p => {
+    getPhaseRanges(p.phases).forEach(r => {
+      if (r.start.getTime() < minMs) minMs = r.start.getTime();
+      if (r.end.getTime()   > maxMs) maxMs = r.end.getTime();
+    });
+  });
+  // 左右各加 14 天緩衝
+  minMs -= 14 * 86400000;
+  maxMs += 14 * 86400000;
+  const totalDays = (maxMs - minMs) / 86400000;
+
+  const CHART_W = Math.max(totalDays * 3, 600); // 每天 3px，最少 600px
+  const SVG_W   = LABEL_W + CHART_W;
+  const SVG_H   = HEADER_H + list.length * ROW_H;
+
+  const PHASE_COLORS = ['#90caf9','#a5d6a7','#ffe082','#ce93d8','#80cbc4','#ef9a9a'];
+
+  // ms → x 座標（相對於 LABEL_W）
+  function msToX(ms) {
+    return LABEL_W + ((ms - minMs) / 86400000) * 3;
+  }
+
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
+  svg.setAttribute('width', SVG_W);
+  svg.setAttribute('height', SVG_H);
+  svg.setAttribute('aria-label', '專案甘特圖');
+
+  // ---- 背景 ----
+  const bg = document.createElementNS(svgNS, 'rect');
+  bg.setAttribute('x', 0); bg.setAttribute('y', 0);
+  bg.setAttribute('width', SVG_W); bg.setAttribute('height', SVG_H);
+  bg.setAttribute('fill', '#fafafa');
+  svg.appendChild(bg);
+
+  // ---- 月份標頭 ----
+  const cur = new Date(minMs);
+  cur.setDate(1);
+  while (cur.getTime() <= maxMs) {
+    const x = msToX(cur.getTime());
+    const label = `${cur.getFullYear()}/${cur.getMonth() + 1}`;
+
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', x); line.setAttribute('y1', 0);
+    line.setAttribute('x2', x); line.setAttribute('y2', SVG_H);
+    line.setAttribute('stroke', '#dde1ea'); line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+
+    const txt = document.createElementNS(svgNS, 'text');
+    txt.setAttribute('x', x + 4); txt.setAttribute('y', 22);
+    txt.setAttribute('font-size', '11'); txt.setAttribute('fill', '#666');
+    txt.textContent = label;
+    svg.appendChild(txt);
+
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  // ---- 今日線 ----
+  if (TODAY_MS >= minMs && TODAY_MS <= maxMs) {
+    const tx = msToX(TODAY_MS);
+    const todayLine = document.createElementNS(svgNS, 'line');
+    todayLine.setAttribute('x1', tx); todayLine.setAttribute('y1', HEADER_H);
+    todayLine.setAttribute('x2', tx); todayLine.setAttribute('y2', SVG_H);
+    todayLine.setAttribute('stroke', '#e53935');
+    todayLine.setAttribute('stroke-width', '2');
+    todayLine.setAttribute('stroke-dasharray', '4 3');
+    svg.appendChild(todayLine);
+
+    const todayLabel = document.createElementNS(svgNS, 'text');
+    todayLabel.setAttribute('x', tx + 3); todayLabel.setAttribute('y', HEADER_H + 12);
+    todayLabel.setAttribute('font-size', '10'); todayLabel.setAttribute('fill', '#e53935');
+    todayLabel.textContent = '今日';
+    svg.appendChild(todayLabel);
+  }
+
+  // ---- 專案列 ----
+  list.forEach((project, ri) => {
+    const y = HEADER_H + ri * ROW_H;
+
+    // 列背景（交替）
+    const rowBg = document.createElementNS(svgNS, 'rect');
+    rowBg.setAttribute('x', 0); rowBg.setAttribute('y', y);
+    rowBg.setAttribute('width', SVG_W); rowBg.setAttribute('height', ROW_H);
+    rowBg.setAttribute('fill', ri % 2 === 0 ? '#fff' : '#f5f6fa');
+    svg.appendChild(rowBg);
+
+    // 左側名稱
+    const nameTxt = document.createElementNS(svgNS, 'text');
+    nameTxt.setAttribute('x', 6); nameTxt.setAttribute('y', y + ROW_H / 2 + 4);
+    nameTxt.setAttribute('font-size', '12'); nameTxt.setAttribute('fill', '#222');
+    nameTxt.setAttribute('clip-path', `url(#clip-label-${ri})`);
+    // 截斷過長名稱
+    const maxChars = 14;
+    nameTxt.textContent = project.name.length > maxChars
+      ? project.name.slice(0, maxChars) + '…'
+      : project.name;
+    svg.appendChild(nameTxt);
+
+    // 各階段長條
+    const ranges = getPhaseRanges(project.phases);
+    ranges.forEach((r, pi) => {
+      const x1 = msToX(r.start.getTime());
+      const x2 = msToX(r.end.getTime());
+      const barW = Math.max(x2 - x1, 2);
+      const barH = ROW_H * 0.55;
+      const barY = y + (ROW_H - barH) / 2;
+
+      const bar = document.createElementNS(svgNS, 'rect');
+      bar.setAttribute('x', x1); bar.setAttribute('y', barY);
+      bar.setAttribute('width', barW); bar.setAttribute('height', barH);
+      bar.setAttribute('fill', PHASE_COLORS[pi % PHASE_COLORS.length]);
+      bar.setAttribute('rx', '3');
+      svg.appendChild(bar);
+
+      // 階段標籤（只在夠寬時顯示）
+      if (barW > 28) {
+        const pTxt = document.createElementNS(svgNS, 'text');
+        pTxt.setAttribute('x', x1 + 4); pTxt.setAttribute('y', barY + barH / 2 + 4);
+        pTxt.setAttribute('font-size', '10'); pTxt.setAttribute('fill', '#333');
+        pTxt.textContent = r.name;
+        svg.appendChild(pTxt);
+      }
+    });
+  });
+
+  // 左側名稱區域底線
+  const labelBorder = document.createElementNS(svgNS, 'line');
+  labelBorder.setAttribute('x1', LABEL_W); labelBorder.setAttribute('y1', 0);
+  labelBorder.setAttribute('x2', LABEL_W); labelBorder.setAttribute('y2', SVG_H);
+  labelBorder.setAttribute('stroke', '#ccc'); labelBorder.setAttribute('stroke-width', '1');
+  svg.appendChild(labelBorder);
+
+  // 包在可橫向捲動的容器
+  container.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'gantt-scroll';
+  wrapper.appendChild(svg);
+
+  // 捲動到今日（置中）
+  container.appendChild(wrapper);
+  const todayX = msToX(TODAY_MS);
+  wrapper.scrollLeft = todayX - wrapper.clientWidth / 2;
+}
+
+// ===== 切換列表 / 甘特圖 =====
+function initViewToggle() {
+  const btnList  = document.getElementById('btn-list');
+  const btnGantt = document.getElementById('btn-gantt');
+  const listView  = document.getElementById('project-list');
+  const ganttView = document.getElementById('gantt-view');
+
+  function getFiltered() {
+    const val = document.getElementById('client-filter').value;
+    return val ? PROJECTS.filter(p => p.client === val) : PROJECTS;
+  }
+
+  btnList.addEventListener('click', () => {
+    listView.hidden  = false;
+    ganttView.hidden = true;
+    btnList.classList.add('btn-view--active');
+    btnList.setAttribute('aria-pressed', 'true');
+    btnGantt.classList.remove('btn-view--active');
+    btnGantt.setAttribute('aria-pressed', 'false');
+  });
+
+  btnGantt.addEventListener('click', () => {
+    listView.hidden  = true;
+    ganttView.hidden = false;
+    btnGantt.classList.add('btn-view--active');
+    btnGantt.setAttribute('aria-pressed', 'true');
+    btnList.classList.remove('btn-view--active');
+    btnList.setAttribute('aria-pressed', 'false');
+    renderGantt(getFiltered());
+  });
+}
+
 // ===== 啟動 =====
 initFilter();
+initViewToggle();
 renderProjects(PROJECTS);

@@ -182,6 +182,56 @@ main {
   display: block;
 }
 
+/* ===== View Toggle ===== */
+.view-toggle {
+  display: flex;
+  gap: 0;
+  margin-left: auto;
+}
+
+.btn-view {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #555;
+}
+
+.btn-view:first-child {
+  border-radius: 6px 0 0 6px;
+  border-right: none;
+}
+
+.btn-view:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.btn-view--active {
+  background: #1e3a5f;
+  color: #fff;
+  border-color: #1e3a5f;
+}
+
+/* ===== Gantt View ===== */
+.gantt-view {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #dde1ea;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.gantt-scroll {
+  overflow-x: auto;
+}
+
+.gantt-empty {
+  text-align: center;
+  color: #888;
+  padding: 40px 0;
+}
+
 /* ===== RWD ===== */
 @media (max-width: 768px) {
   .project-card__summary {
