@@ -27,6 +27,13 @@
         <option value="待發布">待發布</option>
         <option value="已發布">已發布</option>
       </select>
+      <label for="sort-by">排序：</label>
+      <select id="sort-by">
+        <option value="">不排序</option>
+        <option value="client">客戶</option>
+        <option value="status">狀態</option>
+        <option value="date">預計完成日期</option>
+      </select>
       <div class="view-toggle" role="group" aria-label="切換顯示模式">
         <button id="btn-list" class="btn-view btn-view--active" aria-pressed="true">列表</button>
         <button id="btn-gantt" class="btn-view" aria-pressed="false">甘特圖</button>

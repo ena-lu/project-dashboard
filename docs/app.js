@@ -311,13 +311,79 @@ function initFilters() {
   statusSelect.addEventListener('change', applyFilters);
 }
 
+// ===== 排序比較函式 =====
+const STATUS_ORDER = {
+  '需求確認中': 1,
+  '待開案': 2,
+  '開發中': 3,
+  '測試中': 4,
+  '待發布': 5,
+  '已發布': 6
+};
+
+function parseDate(str) {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function sortProjects(list, sortBy) {
+  if (!sortBy) return list;
+
+  const sorted = [...list];
+  sorted.sort((a, b) => {
+    if (sortBy === 'client') {
+      return a.client.localeCompare(b.client, 'zh-Hant');
+    }
+    if (sortBy === 'status') {
+      return (STATUS_ORDER[a.status] || 0) - (STATUS_ORDER[b.status] || 0);
+    }
+    if (sortBy === 'date') {
+      // 取目前階段的 plannedDate
+      const phaseA = a.phases.find(p => p.name === STATUS_PHASE[a.status]);
+      const phaseB = b.phases.find(p => p.name === STATUS_PHASE[b.status]);
+      const dateA = phaseA && phaseA.plannedDate ? parseDate(phaseA.plannedDate) : null;
+      const dateB = phaseB && phaseB.plannedDate ? parseDate(phaseB.plannedDate) : null;
+      // null 排最後
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return dateA.getTime() - dateB.getTime();
+    }
+    return 0;
+  });
+  return sorted;
+}
+
+// ===== 初始化篩選 =====
+function initFilters() {
+  const clientSelect = document.getElementById('client-filter');
+  const statusSelect = document.getElementById('status-filter');
+  const sortSelect = document.getElementById('sort-by');
+
+  // 初始化客戶選單
+  const clients = [...new Set(PROJECTS.map(p => p.client))];
+  clients.forEach(client => {
+    const opt = document.createElement('option');
+    opt.value = client;
+    opt.textContent = client;
+    clientSelect.appendChild(opt);
+  });
+
+  // 事件監聽
+  clientSelect.addEventListener('change', applyFilters);
+  statusSelect.addEventListener('change', applyFilters);
+  sortSelect.addEventListener('change', applyFilters);
+}
+
 function applyFilters() {
   const clientVal = document.getElementById('client-filter').value;
   const statusVal = document.getElementById('status-filter').value;
+  const sortVal = document.getElementById('sort-by').value;
 
   let filtered = PROJECTS;
   if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
   if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
+  filtered = sortProjects(filtered, sortVal);
 
   renderProjects(filtered);
   // 若目前為甘特圖模式，同步更新
