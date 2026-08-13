@@ -129,3 +129,48 @@
 - [x] 線上 URL 可正常載入，CSS 與 JS 無 404
 
 **Commit 訊息：** `task4: integration check and publish to GitHub Pages`
+---
+
+## Task 5：甘特圖檢視（US-08）
+
+**目標：** 新增甘特圖檢視模式，以 SVG 原生呈現所有專案各階段時程，預設置中於今日。
+
+**要修改的檔案：**
+- `docs/index.html`：加入切換按鈕與甘特圖容器
+- `docs/app.js`：加入 `renderGantt()` 與切換邏輯
+- `docs/styles.css`：加入甘特圖樣式
+
+**工作內容：**
+1. 在 `toolbar` 加入 `#btn-list` 與 `#btn-gantt` 切換按鈕
+2. 新增 `#gantt-view` 容器（預設 hidden）
+3. `renderGantt(list)`：
+   - 原生 SVG 產生，X 軸時間、Y 軸專案
+   - 階段區間：無 `plannedDate` 不顯示
+   - 今日以紅色虛線標示，進入時水平置中
+4. 切換按鈕點擊時切換可見容器
+5. 客戶篩選變更時同步更新甘特圖
+
+**驗收標準（US-08）：**
+- [x] 提供「列表」與「甘特圖」切換按鈕
+- [x] 預設顯示列表，點擊甘特圖按鈕後切換為甘特圖
+- [x] 甘特圖以原生 SVG 實作，不引入外部套件
+- [x] X 軸為時間軸，Y 軸每列代表一個專案
+- [x] 每個專案顯示 5 個階段的時間區段（依 plannedDate 計算起訖）
+- [x] 無 plannedDate 的階段不顯示
+- [x] 進入甘特圖時，時間軸預設置中於今日
+- [x] 今日在時間軸上以明顯垂直線標示
+- [x] 客戶篩選套用至甘特圖
+
+**Commit 訊息：** `feat: add Gantt chart view (US-08)`
+
+---
+
+## 完成狀態
+
+| Task | 狀態 | Commit |
+|------|------|--------|
+| Task 1 | ✅ | 78ba742 |
+| Task 2 | ✅ | 398146c |
+| Task 3 | ✅ | 822fd54 |
+| Task 4 | ✅ | e8995a0 |
+| Task 5 | ✅ | 1ce0946 |
