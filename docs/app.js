@@ -106,6 +106,16 @@ const PROJECTS = [
   }
 ];
 
+// ===== 狀態 → 當前階段 index 對應 =====
+const STATUS_PHASE_INDEX = {
+  '需求確認中': 0,
+  '待開案':     1,
+  '開發中':     2,
+  '測試中':     3,
+  '待發布':     4,
+  '已發布':     4
+};
+
 // ===== 狀態 → CSS class 對應 =====
 const STATUS_CLASS = {
   '需求確認中': 'badge--requirements',
@@ -243,6 +253,7 @@ function buildCardHTML(project) {
         <span class="project-name">${project.name}</span>
         <span class="project-client">${project.client}</span>
         <span class="badge ${badgeClass}">${project.status}</span>
+        <span class="project-phase-date">預計：${project.phases[STATUS_PHASE_INDEX[project.status] ?? 0].plannedDate}</span>
       </div>
       <div class="project-card__detail" hidden>
         <table class="phase-table">

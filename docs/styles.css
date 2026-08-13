@@ -87,6 +87,13 @@ main {
   font-size: 0.9rem;
 }
 
+.project-phase-date {
+  color: #777;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
 /* ===== Status Badges ===== */
 .badge {
   display: inline-block;
