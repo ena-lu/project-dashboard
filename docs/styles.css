@@ -87,11 +87,16 @@ main {
   font-size: 0.9rem;
 }
 
-.project-phase-date {
-  color: #777;
-  font-size: 0.85rem;
-  white-space: nowrap;
+.current-phase-date {
   margin-left: auto;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.current-phase-date::before {
+  content: '預計完成：';
+  color: #999;
 }
 
 /* ===== Status Badges ===== */

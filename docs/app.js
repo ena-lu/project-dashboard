@@ -106,16 +106,6 @@ const PROJECTS = [
   }
 ];
 
-// ===== 狀態 → 當前階段 index 對應 =====
-const STATUS_PHASE_INDEX = {
-  '需求確認中': 0,
-  '待開案':     1,
-  '開發中':     2,
-  '測試中':     3,
-  '待發布':     4,
-  '已發布':     4
-};
-
 // ===== 狀態 → CSS class 對應 =====
 const STATUS_CLASS = {
   '需求確認中': 'badge--requirements',
@@ -126,7 +116,22 @@ const STATUS_CLASS = {
   '已發布':     'badge--released'
 };
 
-// ===== 工時差異文字 =====
+// ===== 狀態 → 對應階段名稱 =====
+const STATUS_PHASE = {
+  '需求確認中': '需求確認',
+  '待開案':     '開案',
+  '開發中':     '開發',
+  '測試中':     '測試',
+  '待發布':     '發布',
+  '已發布':     '發布'
+};
+
+// ===== 取得目前階段預計完成日期 =====
+function currentPhasePlannedDate(project) {
+  const phaseName = STATUS_PHASE[project.status];
+  const phase = project.phases.find(p => p.name === phaseName);
+  return (phase && phase.plannedDate) ? phase.plannedDate : '—';
+}
 function diffText(estimated, actual) {
   if (actual === null || actual === '') return '—';
   const d = Number(actual) - estimated;
@@ -253,7 +258,7 @@ function buildCardHTML(project) {
         <span class="project-name">${project.name}</span>
         <span class="project-client">${project.client}</span>
         <span class="badge ${badgeClass}">${project.status}</span>
-        <span class="project-phase-date">預計：${project.phases[STATUS_PHASE_INDEX[project.status] ?? 0].plannedDate}</span>
+        <span class="current-phase-date" aria-label="當前階段預計完成日期">${currentPhasePlannedDate(project)}</span>
       </div>
       <div class="project-card__detail" hidden>
         <table class="phase-table">
