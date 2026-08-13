@@ -292,26 +292,38 @@ function renderProjects(list) {
   });
 }
 
-// ===== 初始化客戶篩選 =====
-function initFilter() {
-  const select = document.getElementById('client-filter');
+// ===== 初始化篩選 =====
+function initFilters() {
+  const clientSelect = document.getElementById('client-filter');
+  const statusSelect = document.getElementById('status-filter');
+
+  // 初始化客戶選單
   const clients = [...new Set(PROJECTS.map(p => p.client))];
   clients.forEach(client => {
     const opt = document.createElement('option');
     opt.value = client;
     opt.textContent = client;
-    select.appendChild(opt);
+    clientSelect.appendChild(opt);
   });
 
-  select.addEventListener('change', () => {
-    const val = select.value;
-    const filtered = val ? PROJECTS.filter(p => p.client === val) : PROJECTS;
-    renderProjects(filtered);
-    // 若目前為甘特圖模式，同步更新
-    if (!document.getElementById('gantt-view').hidden) {
-      renderGantt(filtered);
-    }
-  });
+  // 客戶篩選事件
+  clientSelect.addEventListener('change', applyFilters);
+  statusSelect.addEventListener('change', applyFilters);
+}
+
+function applyFilters() {
+  const clientVal = document.getElementById('client-filter').value;
+  const statusVal = document.getElementById('status-filter').value;
+
+  let filtered = PROJECTS;
+  if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
+  if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
+
+  renderProjects(filtered);
+  // 若目前為甘特圖模式，同步更新
+  if (!document.getElementById('gantt-view').hidden) {
+    renderGantt(filtered);
+  }
 }
 
 // ===== 事件委派：展開 / 收合 =====
@@ -565,11 +577,6 @@ function initViewToggle() {
   const listView  = document.getElementById('project-list');
   const ganttView = document.getElementById('gantt-view');
 
-  function getFiltered() {
-    const val = document.getElementById('client-filter').value;
-    return val ? PROJECTS.filter(p => p.client === val) : PROJECTS;
-  }
-
   btnList.addEventListener('click', () => {
     listView.hidden  = false;
     ganttView.hidden = true;
@@ -586,11 +593,17 @@ function initViewToggle() {
     btnGantt.setAttribute('aria-pressed', 'true');
     btnList.classList.remove('btn-view--active');
     btnList.setAttribute('aria-pressed', 'false');
-    renderGantt(getFiltered());
+    // 取得目前篩選條件後渲染甘特圖
+    const clientVal = document.getElementById('client-filter').value;
+    const statusVal = document.getElementById('status-filter').value;
+    let filtered = PROJECTS;
+    if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
+    if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
+    renderGantt(filtered);
   });
 }
 
 // ===== 啟動 =====
-initFilter();
+initFilters();
 initViewToggle();
 renderProjects(PROJECTS);

@@ -17,6 +17,16 @@
       <select id="client-filter">
         <option value="">全部客戶</option>
       </select>
+      <label for="status-filter">依狀態篩選：</label>
+      <select id="status-filter">
+        <option value="">全部狀態</option>
+        <option value="需求確認中">需求確認中</option>
+        <option value="待開案">待開案</option>
+        <option value="開發中">開發中</option>
+        <option value="測試中">測試中</option>
+        <option value="待發布">待發布</option>
+        <option value="已發布">已發布</option>
+      </select>
       <div class="view-toggle" role="group" aria-label="切換顯示模式">
         <button id="btn-list" class="btn-view btn-view--active" aria-pressed="true">列表</button>
         <button id="btn-gantt" class="btn-view" aria-pressed="false">甘特圖</button>
