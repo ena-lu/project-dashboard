@@ -1,0 +1,341 @@
+// ===== 模擬資料 =====
+const PROJECTS = [
+  {
+    id: 1,
+    name: '電商平台改版',
+    client: '台灣零售股份有限公司',
+    status: '開發中',
+    phases: [
+      { name: '需求確認', plannedDate: '2026-02-15', actualDate: '2026-02-18', estimatedHours: 16, actualHours: 20 },
+      { name: '開案',     plannedDate: '2026-03-01', actualDate: '2026-03-03', estimatedHours: 8,  actualHours: 8  },
+      { name: '開發',     plannedDate: '2026-05-31', actualDate: '',           estimatedHours: 120, actualHours: null },
+      { name: '測試',     plannedDate: '2026-06-20', actualDate: '',           estimatedHours: 40,  actualHours: null },
+      { name: '發布',     plannedDate: '2026-06-30', actualDate: '',           estimatedHours: 8,   actualHours: null }
+    ]
+  },
+  {
+    id: 2,
+    name: '會員系統升級',
+    client: '台灣零售股份有限公司',
+    status: '測試中',
+    phases: [
+      { name: '需求確認', plannedDate: '2026-01-10', actualDate: '2026-01-10', estimatedHours: 12, actualHours: 10 },
+      { name: '開案',     plannedDate: '2026-01-20', actualDate: '2026-01-22', estimatedHours: 6,  actualHours: 7  },
+      { name: '開發',     plannedDate: '2026-03-15', actualDate: '2026-03-20', estimatedHours: 80, actualHours: 92 },
+      { name: '測試',     plannedDate: '2026-04-10', actualDate: '',           estimatedHours: 30, actualHours: null },
+      { name: '發布',     plannedDate: '2026-04-20', actualDate: '',           estimatedHours: 6,  actualHours: null }
+    ]
+  },
+  {
+    id: 3,
+    name: '企業入口網站',
+    client: '全球科技有限公司',
+    status: '需求確認中',
+    phases: [
+      { name: '需求確認', plannedDate: '2026-08-30', actualDate: '',           estimatedHours: 24, actualHours: null },
+      { name: '開案',     plannedDate: '2026-09-15', actualDate: '',           estimatedHours: 8,  actualHours: null },
+      { name: '開發',     plannedDate: '2026-11-30', actualDate: '',           estimatedHours: 160, actualHours: null },
+      { name: '測試',     plannedDate: '2026-12-20', actualDate: '',           estimatedHours: 48, actualHours: null },
+      { name: '發布',     plannedDate: '2026-12-31', actualDate: '',           estimatedHours: 8,  actualHours: null }
+    ]
+  },
+  {
+    id: 4,
+    name: 'ERP 報表模組',
+    client: '全球科技有限公司',
+    status: '待開案',
+    phases: [
+      { name: '需求確認', plannedDate: '2026-07-15', actualDate: '2026-07-15', estimatedHours: 16, actualHours: 14 },
+      { name: '開案',     plannedDate: '2026-08-01', actualDate: '',           estimatedHours: 6,  actualHours: null },
+      { name: '開發',     plannedDate: '2026-10-31', actualDate: '',           estimatedHours: 100, actualHours: null },
+      { name: '測試',     plannedDate: '2026-11-20', actualDate: '',           estimatedHours: 32, actualHours: null },
+      { name: '發布',     plannedDate: '2026-11-30', actualDate: '',           estimatedHours: 6,  actualHours: null }
+    ]
+  },
+  {
+    id: 5,
+    name: '行動 App 後台',
+    client: '新世代數位媒體',
+    status: '待發布',
+    phases: [
+      { name: '需求確認', plannedDate: '2025-11-01', actualDate: '2025-11-01', estimatedHours: 16, actualHours: 16 },
+      { name: '開案',     plannedDate: '2025-11-15', actualDate: '2025-11-15', estimatedHours: 8,  actualHours: 7  },
+      { name: '開發',     plannedDate: '2026-02-28', actualDate: '2026-03-05', estimatedHours: 200, actualHours: 215 },
+      { name: '測試',     plannedDate: '2026-03-20', actualDate: '2026-03-22', estimatedHours: 60, actualHours: 55 },
+      { name: '發布',     plannedDate: '2026-04-01', actualDate: '',           estimatedHours: 8,  actualHours: null }
+    ]
+  },
+  {
+    id: 6,
+    name: '客服知識庫平台',
+    client: '新世代數位媒體',
+    status: '已發布',
+    phases: [
+      { name: '需求確認', plannedDate: '2025-07-01', actualDate: '2025-07-02', estimatedHours: 12, actualHours: 12 },
+      { name: '開案',     plannedDate: '2025-07-15', actualDate: '2025-07-15', estimatedHours: 6,  actualHours: 5  },
+      { name: '開發',     plannedDate: '2025-09-30', actualDate: '2025-10-08', estimatedHours: 90, actualHours: 104 },
+      { name: '測試',     plannedDate: '2025-10-20', actualDate: '2025-10-22', estimatedHours: 28, actualHours: 26 },
+      { name: '發布',     plannedDate: '2025-11-01', actualDate: '2025-11-01', estimatedHours: 6,  actualHours: 6  }
+    ]
+  },
+  {
+    id: 7,
+    name: '供應商管理系統',
+    client: '台灣零售股份有限公司',
+    status: '已發布',
+    phases: [
+      { name: '需求確認', plannedDate: '2025-04-01', actualDate: '2025-04-03', estimatedHours: 20, actualHours: 22 },
+      { name: '開案',     plannedDate: '2025-04-15', actualDate: '2025-04-16', estimatedHours: 8,  actualHours: 8  },
+      { name: '開發',     plannedDate: '2025-07-31', actualDate: '2025-08-05', estimatedHours: 140, actualHours: 148 },
+      { name: '測試',     plannedDate: '2025-08-20', actualDate: '2025-08-18', estimatedHours: 40, actualHours: 36 },
+      { name: '發布',     plannedDate: '2025-09-01', actualDate: '2025-09-01', estimatedHours: 8,  actualHours: 8  }
+    ]
+  },
+  {
+    id: 8,
+    name: '數位廣告投放平台',
+    client: '新世代數位媒體',
+    status: '開發中',
+    phases: [
+      { name: '需求確認', plannedDate: '2026-04-10', actualDate: '2026-04-10', estimatedHours: 20, actualHours: 18 },
+      { name: '開案',     plannedDate: '2026-04-25', actualDate: '2026-04-28', estimatedHours: 8,  actualHours: 10 },
+      { name: '開發',     plannedDate: '2026-08-31', actualDate: '',           estimatedHours: 180, actualHours: null },
+      { name: '測試',     plannedDate: '2026-09-20', actualDate: '',           estimatedHours: 56, actualHours: null },
+      { name: '發布',     plannedDate: '2026-09-30', actualDate: '',           estimatedHours: 8,  actualHours: null }
+    ]
+  }
+];
+
+// ===== 狀態 → CSS class 對應 =====
+const STATUS_CLASS = {
+  '需求確認中': 'badge--requirements',
+  '待開案':     'badge--pending',
+  '開發中':     'badge--development',
+  '測試中':     'badge--testing',
+  '待發布':     'badge--staging',
+  '已發布':     'badge--released'
+};
+
+// ===== 工時差異文字 =====
+function diffText(estimated, actual) {
+  if (actual === null || actual === '') return '—';
+  const d = Number(actual) - estimated;
+  if (d > 0) return '+' + d;
+  if (d < 0) return String(d);
+  return '0';
+}
+
+function diffClass(estimated, actual) {
+  if (actual === null || actual === '') return 'diff';
+  const d = Number(actual) - estimated;
+  if (d > 0) return 'diff diff--over';
+  if (d < 0) return 'diff diff--under';
+  return 'diff';
+}
+
+// ===== SVG 趨勢圖 =====
+function renderTrendChart(phases, container) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const W = 500, H = 140;
+  const PAD = { top: 10, right: 10, bottom: 30, left: 30 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const maxH = Math.max(...phases.map(p => Math.max(p.estimatedHours, p.actualHours || 0)), 1);
+  const colW = chartW / phases.length;
+  const barW = colW * 0.3;
+
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('aria-label', '各階段工時趨勢圖');
+
+  phases.forEach((phase, i) => {
+    const x = PAD.left + i * colW;
+
+    // 預估工時（灰色）
+    const estH = (phase.estimatedHours / maxH) * chartH;
+    const estRect = document.createElementNS(svgNS, 'rect');
+    estRect.setAttribute('x', x + colW * 0.1);
+    estRect.setAttribute('y', PAD.top + chartH - estH);
+    estRect.setAttribute('width', barW);
+    estRect.setAttribute('height', estH);
+    estRect.setAttribute('fill', '#b0bec5');
+    svg.appendChild(estRect);
+
+    // 實際工時（藍色，有填才畫）
+    if (phase.actualHours !== null && phase.actualHours !== '') {
+      const actH = (Number(phase.actualHours) / maxH) * chartH;
+      const actRect = document.createElementNS(svgNS, 'rect');
+      actRect.setAttribute('x', x + colW * 0.1 + barW + 2);
+      actRect.setAttribute('y', PAD.top + chartH - actH);
+      actRect.setAttribute('width', barW);
+      actRect.setAttribute('height', actH);
+      actRect.setAttribute('fill', '#1976d2');
+      svg.appendChild(actRect);
+    }
+
+    // 階段名稱（X 軸標籤）
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', x + colW * 0.5);
+    label.setAttribute('y', H - 6);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '11');
+    label.setAttribute('fill', '#555');
+    label.textContent = phase.name;
+    svg.appendChild(label);
+  });
+
+  // 圖例
+  const legend = [
+    { color: '#b0bec5', label: '預估' },
+    { color: '#1976d2', label: '實際' }
+  ];
+  legend.forEach((item, i) => {
+    const lx = PAD.left + i * 60;
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', lx);
+    rect.setAttribute('y', PAD.top);
+    rect.setAttribute('width', 10);
+    rect.setAttribute('height', 10);
+    rect.setAttribute('fill', item.color);
+    svg.appendChild(rect);
+
+    const txt = document.createElementNS(svgNS, 'text');
+    txt.setAttribute('x', lx + 13);
+    txt.setAttribute('y', PAD.top + 9);
+    txt.setAttribute('font-size', '11');
+    txt.setAttribute('fill', '#333');
+    txt.textContent = item.label;
+    svg.appendChild(txt);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+}
+
+// ===== 卡片 HTML 產生 =====
+function buildCardHTML(project) {
+  const badgeClass = STATUS_CLASS[project.status] || 'badge--requirements';
+
+  const rows = project.phases.map(phase => {
+    const dc = diffClass(phase.estimatedHours, phase.actualHours);
+    const dt = diffText(phase.estimatedHours, phase.actualHours);
+    const actualVal = phase.actualHours !== null ? phase.actualHours : '';
+    return `
+      <tr>
+        <td data-label="階段">${phase.name}</td>
+        <td data-label="預計完成日期">${phase.plannedDate}</td>
+        <td data-label="實際完成日期">
+          <input type="date" aria-label="${phase.name}實際完成日期" value="${phase.actualDate}">
+        </td>
+        <td data-label="預估工時（h）">${phase.estimatedHours}</td>
+        <td data-label="實際工時（h）">
+          <input type="number" class="actual-hours" aria-label="${phase.name}實際工時"
+            min="0" value="${actualVal}" data-estimated="${phase.estimatedHours}">
+        </td>
+        <td data-label="差異" class="${dc}">${dt}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <div class="project-card" data-id="${project.id}">
+      <div class="project-card__summary" role="button" tabindex="0" aria-expanded="false">
+        <span class="project-name">${project.name}</span>
+        <span class="project-client">${project.client}</span>
+        <span class="badge ${badgeClass}">${project.status}</span>
+      </div>
+      <div class="project-card__detail" hidden>
+        <table class="phase-table">
+          <thead>
+            <tr>
+              <th scope="col">階段</th>
+              <th scope="col">預計完成日期</th>
+              <th scope="col">實際完成日期</th>
+              <th scope="col">預估工時（h）</th>
+              <th scope="col">實際工時（h）</th>
+              <th scope="col">差異</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="trend-chart" aria-label="${project.name}工時趨勢圖"></div>
+      </div>
+    </div>`;
+}
+
+// ===== 渲染專案列表 =====
+function renderProjects(list) {
+  const container = document.getElementById('project-list');
+  container.innerHTML = list.map(buildCardHTML).join('');
+
+  // 為每張卡片的 trend-chart 畫 SVG（detail 預設 hidden，先渲染不影響顯示）
+  list.forEach(project => {
+    const card = container.querySelector(`[data-id="${project.id}"]`);
+    const chartEl = card.querySelector('.trend-chart');
+    renderTrendChart(project.phases, chartEl);
+  });
+}
+
+// ===== 初始化客戶篩選 =====
+function initFilter() {
+  const select = document.getElementById('client-filter');
+  const clients = [...new Set(PROJECTS.map(p => p.client))];
+  clients.forEach(client => {
+    const opt = document.createElement('option');
+    opt.value = client;
+    opt.textContent = client;
+    select.appendChild(opt);
+  });
+
+  select.addEventListener('change', () => {
+    const val = select.value;
+    const filtered = val ? PROJECTS.filter(p => p.client === val) : PROJECTS;
+    renderProjects(filtered);
+  });
+}
+
+// ===== 事件委派：展開 / 收合 =====
+document.getElementById('project-list').addEventListener('click', e => {
+  const summary = e.target.closest('.project-card__summary');
+  if (!summary) return;
+
+  const card = summary.closest('.project-card');
+  const detail = card.querySelector('.project-card__detail');
+  const isOpen = !detail.hidden;
+
+  // 收合其他卡片
+  document.querySelectorAll('.project-card__detail').forEach(d => {
+    d.hidden = true;
+    d.closest('.project-card').querySelector('.project-card__summary').setAttribute('aria-expanded', 'false');
+  });
+
+  if (!isOpen) {
+    detail.hidden = false;
+    summary.setAttribute('aria-expanded', 'true');
+  }
+});
+
+// ===== 事件委派：鍵盤展開（Enter / Space）=====
+document.getElementById('project-list').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const summary = e.target.closest('.project-card__summary');
+  if (!summary) return;
+  e.preventDefault();
+  summary.click();
+});
+
+// ===== 事件委派：實際工時 input → 更新差異 =====
+document.getElementById('project-list').addEventListener('input', e => {
+  const input = e.target;
+  if (!input.classList.contains('actual-hours')) return;
+
+  const td = input.closest('tr').querySelector('.diff');
+  const estimated = Number(input.dataset.estimated);
+  const actual = input.value === '' ? null : Number(input.value);
+  td.textContent = diffText(estimated, actual);
+  td.className = diffClass(estimated, actual);
+});
+
+// ===== 啟動 =====
+initFilter();
+renderProjects(PROJECTS);
