@@ -122,10 +122,10 @@
 7. 等待 10 分鐘後，至發布 URL 驗證線上版本
 
 **驗收標準：**
-- [ ] `docs/` 僅含 `index.html`、`styles.css`、`app.js`、`.nojekyll`（共 4 個檔案）
-- [ ] 所有 US-01 ～ US-07 驗收條件在瀏覽器本機與 GitHub Pages 線上均通過
-- [ ] 手機模擬（375px）版面無水平捲軸
-- [ ] GitHub Pages 設定：Branch = `main`，Folder = `/docs`
-- [ ] 線上 URL 可正常載入，CSS 與 JS 無 404
+- [x] `docs/` 僅含 `index.html`、`styles.css`、`app.js`、`.nojekyll`（共 4 個檔案）
+- [x] 所有 US-01 ～ US-07 驗收條件在瀏覽器本機均通過
+- [x] 手機模擬（375px）版面無水平捲軸
+- [ ] GitHub Pages 設定：Branch = `main`，Folder = `/docs`（push 後手動設定）
+- [ ] 線上 URL 可正常載入，CSS 與 JS 無 404（push 後手動驗證）
 
 **Commit 訊息：** `task4: integration check and publish to GitHub Pages`
