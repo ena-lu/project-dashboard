@@ -483,26 +483,32 @@ function parseDate(str) {
 }
 
 // 計算每個專案各階段的起訖區間
-// 起始：上一個階段日期隔日；第一個階段：第一個日期前推 30 天
-// 優先使用 actualDate，否則使用 plannedDate
+// 時間軸位置一律以 plannedDate 計算（保持版面穩定）
+// 同時附上 actualDate 資訊供雙條顯示
 function getPhaseRanges(phases) {
   const ranges = [];
-  let prevEnd = null;
+  let prevPlannedEnd = null;
   phases.forEach(phase => {
-    const endDateStr = phase.actualDate || phase.plannedDate;
-    if (!endDateStr) return;
-    const end = parseDate(endDateStr);
-    const start = prevEnd
-      ? new Date(prevEnd.getTime() + 86400000)
-      : new Date(end.getTime() - 30 * 86400000);
-    ranges.push({ 
-      name: phase.name, 
-      start, 
-      end,
-      isDelayed: phase.actualDate && phase.plannedDate && parseDate(phase.actualDate) > parseDate(phase.plannedDate),
+    if (!phase.plannedDate) return;
+    const plannedEnd = parseDate(phase.plannedDate);
+    const plannedStart = prevPlannedEnd
+      ? new Date(prevPlannedEnd.getTime() + 86400000)
+      : new Date(plannedEnd.getTime() - 30 * 86400000);
+
+    // actual 區間：start 與 planned 相同，end 改為 actualDate（若有）
+    const actualEnd = phase.actualDate ? parseDate(phase.actualDate) : null;
+    const isDelayed = actualEnd && actualEnd > plannedEnd;
+
+    ranges.push({
+      name: phase.name,
+      plannedStart,
+      plannedEnd,
+      actualStart: plannedStart,   // actual 同起點，僅終點不同
+      actualEnd,
+      isDelayed,
       isCompleted: !!phase.actualDate
     });
-    prevEnd = end;
+    prevPlannedEnd = plannedEnd;
   });
   return ranges;
 }
@@ -515,17 +521,18 @@ function renderGantt(list) {
   }
 
   const svgNS = 'http://www.w3.org/2000/svg';
-  const ROW_H = 36;        // 每個專案列高
+  const ROW_H = 52;        // 每個專案列高（雙條需要更多空間）
   const LABEL_W = 160;     // 左側專案名稱寬
   const HEADER_H = 36;     // 上方日期標頭高
   const TODAY_MS = new Date().setHours(0, 0, 0, 0);
 
-  // 計算全域時間範圍
+  // 計算全域時間範圍（以 plannedDate 為基準，但也含 actualEnd 避免超出畫面）
   let minMs = Infinity, maxMs = -Infinity;
   list.forEach(p => {
     getPhaseRanges(p.phases).forEach(r => {
-      if (r.start.getTime() < minMs) minMs = r.start.getTime();
-      if (r.end.getTime()   > maxMs) maxMs = r.end.getTime();
+      if (r.plannedStart.getTime() < minMs) minMs = r.plannedStart.getTime();
+      if (r.plannedEnd.getTime()   > maxMs) maxMs = r.plannedEnd.getTime();
+      if (r.actualEnd && r.actualEnd.getTime() > maxMs) maxMs = r.actualEnd.getTime();
     });
   });
   // 左右各加 14 天緩衝
@@ -620,56 +627,86 @@ function renderGantt(list) {
       : project.name;
     svg.appendChild(nameTxt);
 
-    // 各階段長條（根據實際完成日期顯示不同樣式，含 tooltip）
+    // 各階段：雙條（planned 在上，actual 在下）
     const ranges = getPhaseRanges(project.phases);
     ranges.forEach((r, pi) => {
-      const x1 = msToX(r.start.getTime());
-      const x2 = msToX(r.end.getTime());
-      const barW = Math.max(x2 - x1, 2);
-      const barH = ROW_H * 0.55;
-      const barY = y + (ROW_H - barH) / 2;
+      const barH = ROW_H * 0.28;   // 每條高度
+      const gap  = 3;              // 兩條間距
+      const totalBars = ROW_H * 0.28 * 2 + gap;
+      const barsTop = y + (ROW_H - totalBars) / 2;
 
-      // 顏色邏輯：已完成用深色，進行中用淺色
-      let barColor;
-      if (r.isCompleted) {
-        // 已完成：延遲用紅色，正常用深綠
-        barColor = r.isDelayed ? '#e57373' : '#4caf50';
-      } else {
-        // 進行中：淺色（依階段）
-        barColor = PHASE_COLORS[pi % PHASE_COLORS.length];
-      }
+      // ---- 上條：planned（淺色，有細邊框） ----
+      const px1 = msToX(r.plannedStart.getTime());
+      const px2 = msToX(r.plannedEnd.getTime());
+      const pBarW = Math.max(px2 - px1, 2);
+      const plannedColor = PHASE_COLORS[pi % PHASE_COLORS.length];
 
-      const bar = document.createElementNS(svgNS, 'rect');
-      bar.setAttribute('x', x1); bar.setAttribute('y', barY);
-      bar.setAttribute('width', barW); bar.setAttribute('height', barH);
-      bar.setAttribute('fill', barColor);
-      bar.setAttribute('rx', '3');
-      bar.style.cursor = 'pointer';
+      const plannedBar = document.createElementNS(svgNS, 'rect');
+      plannedBar.setAttribute('x', px1);
+      plannedBar.setAttribute('y', barsTop);
+      plannedBar.setAttribute('width', pBarW);
+      plannedBar.setAttribute('height', barH);
+      plannedBar.setAttribute('fill', plannedColor);
+      plannedBar.setAttribute('rx', '3');
+      plannedBar.setAttribute('opacity', '0.55');
+      svg.appendChild(plannedBar);
 
-      // Tooltip 內容
-      const phase = project.phases.find(p => p.name === r.name);
-      const planned = phase.plannedDate || '—';
-      const actual = phase.actualDate || '（未填寫）';
-      bar.setAttribute('aria-label', `${r.name}：預計 ${planned}，實際 ${actual}`);
-      bar.addEventListener('mouseenter', e => {
-        const tip = document.createElementNS(svgNS, 'title');
-        tip.textContent = `${r.name}\n預計：${planned}\n實際：${actual}`;
-        e.target.appendChild(tip);
-      });
-      bar.addEventListener('mouseleave', e => {
-        const tip = e.target.querySelector('title');
-        if (tip) tip.remove();
-      });
-      svg.appendChild(bar);
-
-      // 階段標籤（只在夠寬時顯示）
-      if (barW > 28) {
+      if (pBarW > 28) {
         const pTxt = document.createElementNS(svgNS, 'text');
-        pTxt.setAttribute('x', x1 + 4); pTxt.setAttribute('y', barY + barH / 2 + 4);
-        pTxt.setAttribute('font-size', '10'); pTxt.setAttribute('fill', '#333');
+        pTxt.setAttribute('x', px1 + 4);
+        pTxt.setAttribute('y', barsTop + barH / 2 + 4);
+        pTxt.setAttribute('font-size', '9');
+        pTxt.setAttribute('fill', '#444');
         pTxt.textContent = r.name;
         svg.appendChild(pTxt);
       }
+
+      // ---- 下條：actual（深色，僅在有 actualDate 時畫） ----
+      const actualBarY = barsTop + barH + gap;
+      if (r.isCompleted && r.actualEnd) {
+        const ax1 = msToX(r.actualStart.getTime());
+        const ax2 = msToX(r.actualEnd.getTime());
+        const aBarW = Math.max(ax2 - ax1, 2);
+        const actualColor = r.isDelayed ? '#e57373' : '#4caf50';
+
+        const actualBar = document.createElementNS(svgNS, 'rect');
+        actualBar.setAttribute('x', ax1);
+        actualBar.setAttribute('y', actualBarY);
+        actualBar.setAttribute('width', aBarW);
+        actualBar.setAttribute('height', barH);
+        actualBar.setAttribute('fill', actualColor);
+        actualBar.setAttribute('rx', '3');
+        svg.appendChild(actualBar);
+
+        if (aBarW > 28) {
+          const aTxt = document.createElementNS(svgNS, 'text');
+          aTxt.setAttribute('x', ax1 + 4);
+          aTxt.setAttribute('y', actualBarY + barH / 2 + 4);
+          aTxt.setAttribute('font-size', '9');
+          aTxt.setAttribute('fill', '#fff');
+          aTxt.textContent = r.name;
+          svg.appendChild(aTxt);
+        }
+      }
+
+      // ---- Tooltip 覆蓋整列高度（透明，捕捉 hover）----
+      const phase = project.phases.find(p => p.name === r.name);
+      const planned = phase.plannedDate || '—';
+      const actual  = phase.actualDate  || '（未填寫）';
+
+      const hitArea = document.createElementNS(svgNS, 'rect');
+      hitArea.setAttribute('x', px1);
+      hitArea.setAttribute('y', barsTop);
+      hitArea.setAttribute('width', Math.max(pBarW, r.actualEnd ? msToX(r.actualEnd.getTime()) - px1 : pBarW));
+      hitArea.setAttribute('height', barH * 2 + gap);
+      hitArea.setAttribute('fill', 'transparent');
+      hitArea.style.cursor = 'pointer';
+      hitArea.setAttribute('aria-label', `${r.name}：預計 ${planned}，實際 ${actual}`);
+
+      const tip = document.createElementNS(svgNS, 'title');
+      tip.textContent = `${r.name}\n預計：${planned}\n實際：${actual}`;
+      hitArea.appendChild(tip);
+      svg.appendChild(hitArea);
     });
   });
 
@@ -679,6 +716,31 @@ function renderGantt(list) {
   labelBorder.setAttribute('x2', LABEL_W); labelBorder.setAttribute('y2', SVG_H);
   labelBorder.setAttribute('stroke', '#ccc'); labelBorder.setAttribute('stroke-width', '1');
   svg.appendChild(labelBorder);
+
+  // ---- 圖例（畫在左上角標頭區） ----
+  const legendItems = [
+    { color: '#90caf9', opacity: '0.55', label: '預計' },
+    { color: '#4caf50', opacity: '1',    label: '實際（正常）' },
+    { color: '#e57373', opacity: '1',    label: '實際（延遲）' }
+  ];
+  let lx = LABEL_W + 6;
+  legendItems.forEach(item => {
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', lx); rect.setAttribute('y', 8);
+    rect.setAttribute('width', 12); rect.setAttribute('height', 10);
+    rect.setAttribute('fill', item.color);
+    rect.setAttribute('opacity', item.opacity);
+    rect.setAttribute('rx', '2');
+    svg.appendChild(rect);
+
+    const txt = document.createElementNS(svgNS, 'text');
+    txt.setAttribute('x', lx + 15); txt.setAttribute('y', 17);
+    txt.setAttribute('font-size', '10'); txt.setAttribute('fill', '#444');
+    txt.textContent = item.label;
+    svg.appendChild(txt);
+
+    lx += 15 + item.label.length * 7 + 12;
+  });
 
   // 包在可橫向捲動的容器
   container.innerHTML = '';
