@@ -410,18 +410,7 @@ function applyFilters() {
   renderProjects(filtered);
   // 若目前為甘特圖模式，同步更新
   if (!document.getElementById('gantt-view').hidden) {
-    const startInput = document.getElementById('gantt-start-date');
-    const endInput = document.getElementById('gantt-end-date');
-    let minMs, maxMs;
-    if (startInput?.value) {
-      const d = startInput.value.split('-').map(Number);
-      minMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
-    }
-    if (endInput?.value) {
-      const d = endInput.value.split('-').map(Number);
-      maxMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
-    }
-    renderGantt(filtered, minMs, maxMs);
+    renderGantt(filtered);
   }
 }
 
@@ -494,27 +483,34 @@ function parseDate(str) {
 }
 
 // 計算每個專案各階段的起訖區間
-// 起始：上一個階段 plannedDate 隔日；第一個階段：第一個 plannedDate 前推 30 天
+// 起始：上一個階段日期隔日；第一個階段：第一個日期前推 30 天
+// 優先使用 actualDate，否則使用 plannedDate
 function getPhaseRanges(phases) {
   const ranges = [];
   let prevEnd = null;
   phases.forEach(phase => {
-    if (!phase.plannedDate) return;
-    const end = parseDate(phase.plannedDate);
+    const endDateStr = phase.actualDate || phase.plannedDate;
+    if (!endDateStr) return;
+    const end = parseDate(endDateStr);
     const start = prevEnd
       ? new Date(prevEnd.getTime() + 86400000)
       : new Date(end.getTime() - 30 * 86400000);
-    ranges.push({ name: phase.name, start, end });
+    ranges.push({ 
+      name: phase.name, 
+      start, 
+      end,
+      isDelayed: phase.actualDate && phase.plannedDate && parseDate(phase.actualDate) > parseDate(phase.plannedDate),
+      isCompleted: !!phase.actualDate
+    });
     prevEnd = end;
   });
   return ranges;
 }
 
-function renderGantt(list, minMsInput, maxMsInput) {
+function renderGantt(list) {
   const container = document.getElementById('gantt-view');
   if (!list.length) {
-    container.innerHTML = '<div class="gantt-toolbar"><label for="gantt-start-date">開始日期：</label><input type="date" id="gantt-start-date"><label for="gantt-end-date">結束日期：</label><input type="date" id="gantt-end-date"></div><p class="gantt-empty">查無符合的專案</p>';
-    initGanttDateInputs();
+    container.innerHTML = '<p class="gantt-empty">查無符合的專案</p>';
     return;
   }
 
@@ -525,24 +521,16 @@ function renderGantt(list, minMsInput, maxMsInput) {
   const TODAY_MS = new Date().setHours(0, 0, 0, 0);
 
   // 計算全域時間範圍
-  let minMs = minMsInput, maxMs = maxMsInput;
-  
-  // 若未指定日期區間，則從資料計算並加 14 天緩衝
-  if (minMs === undefined || maxMs === undefined) {
-    let dataMinMs = Infinity, dataMaxMs = -Infinity;
-    list.forEach(p => {
-      getPhaseRanges(p.phases).forEach(r => {
-        if (r.start.getTime() < dataMinMs) dataMinMs = r.start.getTime();
-        if (r.end.getTime()   > dataMaxMs) dataMaxMs = r.end.getTime();
-      });
+  let minMs = Infinity, maxMs = -Infinity;
+  list.forEach(p => {
+    getPhaseRanges(p.phases).forEach(r => {
+      if (r.start.getTime() < minMs) minMs = r.start.getTime();
+      if (r.end.getTime()   > maxMs) maxMs = r.end.getTime();
     });
-    // 預設今日 ±14 天
-    const defaultMin = TODAY_MS - 14 * 86400000;
-    const defaultMax = TODAY_MS + 14 * 86400000;
-    minMs = Math.min(dataMinMs, defaultMin);
-    maxMs = Math.max(dataMaxMs, defaultMax);
-  }
-
+  });
+  // 左右各加 14 天緩衝
+  minMs -= 14 * 86400000;
+  maxMs += 14 * 86400000;
   const totalDays = (maxMs - minMs) / 86400000;
 
   const CHART_W = Math.max(totalDays * 3, 600); // 每天 3px，最少 600px
@@ -632,7 +620,7 @@ function renderGantt(list, minMsInput, maxMsInput) {
       : project.name;
     svg.appendChild(nameTxt);
 
-    // 各階段長條
+    // 各階段長條（根據實際完成日期顯示不同樣式，含 tooltip）
     const ranges = getPhaseRanges(project.phases);
     ranges.forEach((r, pi) => {
       const x1 = msToX(r.start.getTime());
@@ -641,11 +629,37 @@ function renderGantt(list, minMsInput, maxMsInput) {
       const barH = ROW_H * 0.55;
       const barY = y + (ROW_H - barH) / 2;
 
+      // 顏色邏輯：已完成用深色，進行中用淺色
+      let barColor;
+      if (r.isCompleted) {
+        // 已完成：延遲用紅色，正常用深綠
+        barColor = r.isDelayed ? '#e57373' : '#4caf50';
+      } else {
+        // 進行中：淺色（依階段）
+        barColor = PHASE_COLORS[pi % PHASE_COLORS.length];
+      }
+
       const bar = document.createElementNS(svgNS, 'rect');
       bar.setAttribute('x', x1); bar.setAttribute('y', barY);
       bar.setAttribute('width', barW); bar.setAttribute('height', barH);
-      bar.setAttribute('fill', PHASE_COLORS[pi % PHASE_COLORS.length]);
+      bar.setAttribute('fill', barColor);
       bar.setAttribute('rx', '3');
+      bar.style.cursor = 'pointer';
+
+      // Tooltip 內容
+      const phase = project.phases.find(p => p.name === r.name);
+      const planned = phase.plannedDate || '—';
+      const actual = phase.actualDate || '（未填寫）';
+      bar.setAttribute('aria-label', `${r.name}：預計 ${planned}，實際 ${actual}`);
+      bar.addEventListener('mouseenter', e => {
+        const tip = document.createElementNS(svgNS, 'title');
+        tip.textContent = `${r.name}\n預計：${planned}\n實際：${actual}`;
+        e.target.appendChild(tip);
+      });
+      bar.addEventListener('mouseleave', e => {
+        const tip = e.target.querySelector('title');
+        if (tip) tip.remove();
+      });
       svg.appendChild(bar);
 
       // 階段標籤（只在夠寬時顯示）
@@ -667,79 +681,15 @@ function renderGantt(list, minMsInput, maxMsInput) {
   svg.appendChild(labelBorder);
 
   // 包在可橫向捲動的容器
+  container.innerHTML = '';
   const wrapper = document.createElement('div');
   wrapper.className = 'gantt-scroll';
   wrapper.appendChild(svg);
 
-  // 重新產生工具列（保留日期輸入）
-  const startDateVal = document.getElementById('gantt-start-date')?.value || '';
-  const endDateVal = document.getElementById('gantt-end-date')?.value || '';
-  container.innerHTML = '';
-  const toolbar = document.createElement('div');
-  toolbar.className = 'gantt-toolbar';
-  toolbar.innerHTML = `
-    <label for="gantt-start-date">開始日期：</label>
-    <input type="date" id="gantt-start-date" value="${startDateVal}">
-    <label for="gantt-end-date">結束日期：</label>
-    <input type="date" id="gantt-end-date" value="${endDateVal}">
-  `;
-  container.appendChild(toolbar);
-  container.appendChild(wrapper);
-
-  // 綁定日期變更事件
-  initGanttDateInputs();
-
   // 捲動到今日（置中）
+  container.appendChild(wrapper);
   const todayX = msToX(TODAY_MS);
   wrapper.scrollLeft = todayX - wrapper.clientWidth / 2;
-}
-
-// ===== 甘特圖日期篩選初始化 =====
-function initGanttDateInputs() {
-  const startInput = document.getElementById('gantt-start-date');
-  const endInput = document.getElementById('gantt-end-date');
-
-  if (!startInput || !endInput) return;
-
-  // 設定預設值（今日 ±14 天）
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const defaultStart = new Date(today.getTime() - 14 * 86400000);
-  const defaultEnd = new Date(today.getTime() + 14 * 86400000);
-
-  if (!startInput.value) {
-    startInput.value = defaultStart.toISOString().split('T')[0];
-  }
-  if (!endInput.value) {
-    endInput.value = defaultEnd.toISOString().split('T')[0];
-  }
-
-  // 日期變更時重新渲染
-  const updateGantt = () => {
-    const clientVal = document.getElementById('client-filter').value;
-    const statusVal = document.getElementById('status-filter').value;
-    const pmVal = document.getElementById('pm-filter').value;
-    let filtered = PROJECTS;
-    if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
-    if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
-    if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
-
-    let minMs, maxMs;
-    if (startInput.value) {
-      const d = startInput.value.split('-').map(Number);
-      minMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
-    }
-    if (endInput.value) {
-      const d = endInput.value.split('-').map(Number);
-      maxMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
-    }
-    renderGantt(filtered, minMs, maxMs);
-  };
-
-  startInput.removeEventListener('change', updateGantt);
-  endInput.removeEventListener('change', updateGantt);
-  startInput.addEventListener('change', updateGantt);
-  endInput.addEventListener('change', updateGantt);
 }
 
 // ===== 切換列表 / 甘特圖 =====
@@ -765,7 +715,7 @@ function initViewToggle() {
     btnGantt.setAttribute('aria-pressed', 'true');
     btnList.classList.remove('btn-view--active');
     btnList.setAttribute('aria-pressed', 'false');
-    // 初始化日期區間並渲染甘特圖
+    // 取得目前篩選條件後渲染甘特圖
     const clientVal = document.getElementById('client-filter').value;
     const statusVal = document.getElementById('status-filter').value;
     const pmVal = document.getElementById('pm-filter').value;
@@ -773,7 +723,6 @@ function initViewToggle() {
     if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
     if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
     if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
-    // 渲染甘特圖，會由 initGanttDateInputs 設定預設日期
     renderGantt(filtered);
   });
 }

@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Frontend quality review",
+      "trigger": "PostFileSave",
+      "matcher": "^docs/.*\\.(html|css|js)$",
+      "action": {
+        "type": "agent",
+        "prompt": "已儲存的檔案屬於 docs/ 資料夾內的前端原始碼，請依以下清單逐項審查，完成後只輸出發現的問題，不要自動修改任何檔案，也不要執行下一個 Task。\n\n## 審查清單\n\n1. **HTML 結構與語意標籤**\n   - 標籤使用是否符合語意（如 header、main、section、table 等）\n   - 是否有必要的 meta charset 與 viewport 設定\n\n2. **CSS 響應式版面**\n   - 是否包含 @media 斷點支援手機版面\n   - 是否有造成水平捲軸的固定寬度\n\n3. **JavaScript 明顯錯誤**\n   - 語法錯誤、未定義變數、未關閉的括號等\n\n4. **資源路徑**\n   - 圖片、CSS、JavaScript 是否使用相對路徑（不得使用 /docs/... 或 https:// 外部連結）\n\n5. **基本無障礙問題**\n   - 互動元素是否有 aria-label 或可辨識的文字\n   - input 是否有對應 label 或 aria-label\n\n6. **範疇蔓延**\n   - 是否實作了 .kiro/specs/dashboard/requirements.md 未要求的功能\n   - 明確禁止項目：登入/權限、外部 API/後端、新增/刪除專案、圖表統計報表、資料持久化\n\n7. **禁止的技術**\n   - 是否引入 Node.js、Vite、React、Vue、Angular 或任何外部套件\n   - 是否有來自 CDN 的 `<script src>` 或 `@import url()`\n\n## 輸出格式\n\n若發現問題，依以下格式列出（無問題則回覆「✅ 未發現問題」）：\n\n**檔案：** `{檔案路徑}`\n**問題：** {問題說明}\n**建議：** {修正方式}\n\n---\n"
+      }
+    }
+  ]
+}

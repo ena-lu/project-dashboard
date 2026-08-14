@@ -230,25 +230,6 @@ main {
   padding: 16px;
 }
 
-.gantt-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.gantt-toolbar label {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.gantt-toolbar input[type="date"] {
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
 .gantt-scroll {
   overflow-x: auto;
 }
