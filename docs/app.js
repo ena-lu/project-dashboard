@@ -410,7 +410,18 @@ function applyFilters() {
   renderProjects(filtered);
   // 若目前為甘特圖模式，同步更新
   if (!document.getElementById('gantt-view').hidden) {
-    renderGantt(filtered);
+    const startInput = document.getElementById('gantt-start-date');
+    const endInput = document.getElementById('gantt-end-date');
+    let minMs, maxMs;
+    if (startInput?.value) {
+      const d = startInput.value.split('-').map(Number);
+      minMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
+    }
+    if (endInput?.value) {
+      const d = endInput.value.split('-').map(Number);
+      maxMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
+    }
+    renderGantt(filtered, minMs, maxMs);
   }
 }
 
@@ -499,14 +510,11 @@ function getPhaseRanges(phases) {
   return ranges;
 }
 
-function renderGantt(list, startDate, endDate) {
+function renderGantt(list, minMsInput, maxMsInput) {
   const container = document.getElementById('gantt-view');
-  // 保留 gantt-controls，僅清空圖表區
-  const controls = container.querySelector('.gantt-controls');
   if (!list.length) {
-    container.innerHTML = '';
-    if (controls) container.appendChild(controls);
-    container.innerHTML += '<p class="gantt-empty">查無符合的專案</p>';
+    container.innerHTML = '<div class="gantt-toolbar"><label for="gantt-start-date">開始日期：</label><input type="date" id="gantt-start-date"><label for="gantt-end-date">結束日期：</label><input type="date" id="gantt-end-date"></div><p class="gantt-empty">查無符合的專案</p>';
+    initGanttDateInputs();
     return;
   }
 
@@ -516,23 +524,25 @@ function renderGantt(list, startDate, endDate) {
   const HEADER_H = 36;     // 上方日期標頭高
   const TODAY_MS = new Date().setHours(0, 0, 0, 0);
 
-  // 使用篩選的日期區間，若未指定則用今日±14天
-  const startMs = startDate ? startDate.getTime() : (TODAY_MS - 14 * 86400000);
-  const endMs = endDate ? endDate.getTime() : (TODAY_MS + 14 * 86400000);
-  let minMs = startMs, maxMs = endMs;
-
-  // 計算符合區間的專案時間範圍
-  list.forEach(p => {
-    getPhaseRanges(p.phases).forEach(r => {
-      if (r.end.getTime() < minMs || r.start.getTime() > maxMs) return; // 超出範圍不顯示
-      if (r.start.getTime() < minMs) minMs = r.start.getTime();
-      if (r.end.getTime() > maxMs) maxMs = r.end.getTime();
+  // 計算全域時間範圍
+  let minMs = minMsInput, maxMs = maxMsInput;
+  
+  // 若未指定日期區間，則從資料計算並加 14 天緩衝
+  if (minMs === undefined || maxMs === undefined) {
+    let dataMinMs = Infinity, dataMaxMs = -Infinity;
+    list.forEach(p => {
+      getPhaseRanges(p.phases).forEach(r => {
+        if (r.start.getTime() < dataMinMs) dataMinMs = r.start.getTime();
+        if (r.end.getTime()   > dataMaxMs) dataMaxMs = r.end.getTime();
+      });
     });
-  });
-  // 無專案時使用預設區間
-  if (minMs === startMs && maxMs === endMs && list.length === 0) {
-    minMs = startMs; maxMs = endMs;
+    // 預設今日 ±14 天
+    const defaultMin = TODAY_MS - 14 * 86400000;
+    const defaultMax = TODAY_MS + 14 * 86400000;
+    minMs = Math.min(dataMinMs, defaultMin);
+    maxMs = Math.max(dataMaxMs, defaultMax);
   }
+
   const totalDays = (maxMs - minMs) / 86400000;
 
   const CHART_W = Math.max(totalDays * 3, 600); // 每天 3px，最少 600px
@@ -657,18 +667,79 @@ function renderGantt(list, startDate, endDate) {
   svg.appendChild(labelBorder);
 
   // 包在可橫向捲動的容器
-  // 保留 gantt-controls，移除其他內容
-  const controls = container.querySelector('.gantt-controls');
-  container.innerHTML = '';
-  if (controls) container.appendChild(controls);
   const wrapper = document.createElement('div');
   wrapper.className = 'gantt-scroll';
   wrapper.appendChild(svg);
 
-  // 捲動到今日（置中）
+  // 重新產生工具列（保留日期輸入）
+  const startDateVal = document.getElementById('gantt-start-date')?.value || '';
+  const endDateVal = document.getElementById('gantt-end-date')?.value || '';
+  container.innerHTML = '';
+  const toolbar = document.createElement('div');
+  toolbar.className = 'gantt-toolbar';
+  toolbar.innerHTML = `
+    <label for="gantt-start-date">開始日期：</label>
+    <input type="date" id="gantt-start-date" value="${startDateVal}">
+    <label for="gantt-end-date">結束日期：</label>
+    <input type="date" id="gantt-end-date" value="${endDateVal}">
+  `;
+  container.appendChild(toolbar);
   container.appendChild(wrapper);
+
+  // 綁定日期變更事件
+  initGanttDateInputs();
+
+  // 捲動到今日（置中）
   const todayX = msToX(TODAY_MS);
   wrapper.scrollLeft = todayX - wrapper.clientWidth / 2;
+}
+
+// ===== 甘特圖日期篩選初始化 =====
+function initGanttDateInputs() {
+  const startInput = document.getElementById('gantt-start-date');
+  const endInput = document.getElementById('gantt-end-date');
+
+  if (!startInput || !endInput) return;
+
+  // 設定預設值（今日 ±14 天）
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const defaultStart = new Date(today.getTime() - 14 * 86400000);
+  const defaultEnd = new Date(today.getTime() + 14 * 86400000);
+
+  if (!startInput.value) {
+    startInput.value = defaultStart.toISOString().split('T')[0];
+  }
+  if (!endInput.value) {
+    endInput.value = defaultEnd.toISOString().split('T')[0];
+  }
+
+  // 日期變更時重新渲染
+  const updateGantt = () => {
+    const clientVal = document.getElementById('client-filter').value;
+    const statusVal = document.getElementById('status-filter').value;
+    const pmVal = document.getElementById('pm-filter').value;
+    let filtered = PROJECTS;
+    if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
+    if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
+    if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
+
+    let minMs, maxMs;
+    if (startInput.value) {
+      const d = startInput.value.split('-').map(Number);
+      minMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
+    }
+    if (endInput.value) {
+      const d = endInput.value.split('-').map(Number);
+      maxMs = new Date(d[0], d[1] - 1, d[2]).setHours(0, 0, 0, 0);
+    }
+    renderGantt(filtered, minMs, maxMs);
+  };
+
+  startInput.removeEventListener('change', updateGantt);
+  endInput.removeEventListener('change', updateGantt);
+  startInput.addEventListener('change', updateGantt);
+  endInput.addEventListener('change', updateGantt);
 }
 
 // ===== 切換列表 / 甘特圖 =====
@@ -694,76 +765,20 @@ function initViewToggle() {
     btnGantt.setAttribute('aria-pressed', 'true');
     btnList.classList.remove('btn-view--active');
     btnList.setAttribute('aria-pressed', 'false');
-    // 初始化日期區間（若尚未初始化）
-    initGanttDateRange();
-    // 取得目前篩選條件與日期區間後渲染甘特圖
+    // 初始化日期區間並渲染甘特圖
     const clientVal = document.getElementById('client-filter').value;
     const statusVal = document.getElementById('status-filter').value;
     const pmVal = document.getElementById('pm-filter').value;
-    const startVal = document.getElementById('gantt-start').value;
-    const endVal = document.getElementById('gantt-end').value;
     let filtered = PROJECTS;
     if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
     if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
     if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
-    const startDate = startVal ? parseDate(startVal) : null;
-    const endDate = endVal ? parseDate(endVal) : null;
-    renderGantt(filtered, startDate, endDate);
-  });
-}
-
-// ===== 甘特圖日期區間 =====
-function initGanttDateRange() {
-  const startInput = document.getElementById('gantt-start');
-  const endInput = document.getElementById('gantt-end');
-  if (startInput.value || endInput.value) return; // 已有值不覆蓋
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = new Date(today.getTime() - 14 * 86400000);
-  const end = new Date(today.getTime() + 14 * 86400000);
-
-  function toIso(d) {
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
-  startInput.value = toIso(start);
-  endInput.value = toIso(end);
-
-  // 日期變更事件
-  startInput.addEventListener('change', () => {
-    if (document.getElementById('gantt-view').hidden) return;
-    const clientVal = document.getElementById('client-filter').value;
-    const statusVal = document.getElementById('status-filter').value;
-    const pmVal = document.getElementById('pm-filter').value;
-    const startVal = document.getElementById('gantt-start').value;
-    const endVal = document.getElementById('gantt-end').value;
-    let filtered = PROJECTS;
-    if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
-    if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
-    if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
-    const startDate = startVal ? parseDate(startVal) : null;
-    const endDate = endVal ? parseDate(endVal) : null;
-    renderGantt(filtered, startDate, endDate);
-  });
-  endInput.addEventListener('change', () => {
-    if (document.getElementById('gantt-view').hidden) return;
-    const clientVal = document.getElementById('client-filter').value;
-    const statusVal = document.getElementById('status-filter').value;
-    const pmVal = document.getElementById('pm-filter').value;
-    const startVal = document.getElementById('gantt-start').value;
-    const endVal = document.getElementById('gantt-end').value;
-    let filtered = PROJECTS;
-    if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
-    if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
-    if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
-    const startDate = startVal ? parseDate(startVal) : null;
-    const endDate = endVal ? parseDate(endVal) : null;
-    renderGantt(filtered, startDate, endDate);
+    // 渲染甘特圖，會由 initGanttDateInputs 設定預設日期
+    renderGantt(filtered);
   });
 }
 
 // ===== 啟動 =====
 initFilters();
 initViewToggle();
-initGanttDateRange();
 renderProjects(PROJECTS);

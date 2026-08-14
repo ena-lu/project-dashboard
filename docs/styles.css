@@ -230,22 +230,22 @@ main {
   padding: 16px;
 }
 
-.gantt-controls {
+.gantt-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
 }
 
-.gantt-controls label {
-  font-weight: 500;
+.gantt-toolbar label {
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.gantt-controls input[type="date"] {
-  padding: 6px 10px;
+.gantt-toolbar input[type="date"] {
+  padding: 5px 8px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 0.9rem;
 }
 
