@@ -87,6 +87,14 @@ main {
   font-size: 0.9rem;
 }
 
+.project-pm {
+  color: #666;
+  font-size: 0.85rem;
+  background: #e8e8e8;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
 .current-phase-date {
   margin-left: auto;
   font-size: 0.85rem;

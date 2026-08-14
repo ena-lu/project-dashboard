@@ -4,6 +4,7 @@ const PROJECTS = [
     id: 1,
     name: '電商平台改版',
     client: '台灣零售股份有限公司',
+    pm: '王小明',
     status: '開發中',
     phases: [
       { name: '需求確認', plannedDate: '2026-02-15', actualDate: '2026-02-18', estimatedHours: 16, actualHours: 20 },
@@ -17,6 +18,7 @@ const PROJECTS = [
     id: 2,
     name: '會員系統升級',
     client: '台灣零售股份有限公司',
+    pm: '王小明',
     status: '測試中',
     phases: [
       { name: '需求確認', plannedDate: '2026-01-10', actualDate: '2026-01-10', estimatedHours: 12, actualHours: 10 },
@@ -30,6 +32,7 @@ const PROJECTS = [
     id: 3,
     name: '企業入口網站',
     client: '全球科技有限公司',
+    pm: '李美華',
     status: '需求確認中',
     phases: [
       { name: '需求確認', plannedDate: '2026-08-30', actualDate: '',           estimatedHours: 24, actualHours: null },
@@ -43,6 +46,7 @@ const PROJECTS = [
     id: 4,
     name: 'ERP 報表模組',
     client: '全球科技有限公司',
+    pm: '李美華',
     status: '待開案',
     phases: [
       { name: '需求確認', plannedDate: '2026-07-15', actualDate: '2026-07-15', estimatedHours: 16, actualHours: 14 },
@@ -56,6 +60,7 @@ const PROJECTS = [
     id: 5,
     name: '行動 App 後台',
     client: '新世代數位媒體',
+    pm: '陳志偉',
     status: '待發布',
     phases: [
       { name: '需求確認', plannedDate: '2025-11-01', actualDate: '2025-11-01', estimatedHours: 16, actualHours: 16 },
@@ -69,6 +74,7 @@ const PROJECTS = [
     id: 6,
     name: '客服知識庫平台',
     client: '新世代數位媒體',
+    pm: '陳志偉',
     status: '已發布',
     phases: [
       { name: '需求確認', plannedDate: '2025-07-01', actualDate: '2025-07-02', estimatedHours: 12, actualHours: 12 },
@@ -82,6 +88,7 @@ const PROJECTS = [
     id: 7,
     name: '供應商管理系統',
     client: '台灣零售股份有限公司',
+    pm: '王小明',
     status: '已發布',
     phases: [
       { name: '需求確認', plannedDate: '2025-04-01', actualDate: '2025-04-03', estimatedHours: 20, actualHours: 22 },
@@ -95,6 +102,7 @@ const PROJECTS = [
     id: 8,
     name: '數位廣告投放平台',
     client: '新世代數位媒體',
+    pm: '陳志偉',
     status: '開發中',
     phases: [
       { name: '需求確認', plannedDate: '2026-04-10', actualDate: '2026-04-10', estimatedHours: 20, actualHours: 18 },
@@ -257,6 +265,7 @@ function buildCardHTML(project) {
       <div class="project-card__summary" role="button" tabindex="0" aria-expanded="false">
         <span class="project-name">${project.name}</span>
         <span class="project-client">${project.client}</span>
+        <span class="project-pm">${project.pm}</span>
         <span class="badge ${badgeClass}">${project.status}</span>
         <span class="current-phase-date" aria-label="當前階段預計完成日期">${currentPhasePlannedDate(project)}</span>
       </div>
@@ -359,6 +368,7 @@ function initFilters() {
   const clientSelect = document.getElementById('client-filter');
   const statusSelect = document.getElementById('status-filter');
   const sortSelect = document.getElementById('sort-by');
+  const pmSelect = document.getElementById('pm-filter');
 
   // 初始化客戶選單
   const clients = [...new Set(PROJECTS.map(p => p.client))];
@@ -369,20 +379,32 @@ function initFilters() {
     clientSelect.appendChild(opt);
   });
 
+  // 初始化 PM 選單
+  const pms = [...new Set(PROJECTS.map(p => p.pm))];
+  pms.forEach(pm => {
+    const opt = document.createElement('option');
+    opt.value = pm;
+    opt.textContent = pm;
+    pmSelect.appendChild(opt);
+  });
+
   // 事件監聽
   clientSelect.addEventListener('change', applyFilters);
   statusSelect.addEventListener('change', applyFilters);
   sortSelect.addEventListener('change', applyFilters);
+  pmSelect.addEventListener('change', applyFilters);
 }
 
 function applyFilters() {
   const clientVal = document.getElementById('client-filter').value;
   const statusVal = document.getElementById('status-filter').value;
   const sortVal = document.getElementById('sort-by').value;
+  const pmVal = document.getElementById('pm-filter').value;
 
   let filtered = PROJECTS;
   if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
   if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
+  if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
   filtered = sortProjects(filtered, sortVal);
 
   renderProjects(filtered);
@@ -662,9 +684,11 @@ function initViewToggle() {
     // 取得目前篩選條件後渲染甘特圖
     const clientVal = document.getElementById('client-filter').value;
     const statusVal = document.getElementById('status-filter').value;
+    const pmVal = document.getElementById('pm-filter').value;
     let filtered = PROJECTS;
     if (clientVal) filtered = filtered.filter(p => p.client === clientVal);
     if (statusVal) filtered = filtered.filter(p => p.status === statusVal);
+    if (pmVal) filtered = filtered.filter(p => p.pm === pmVal);
     renderGantt(filtered);
   });
 }
